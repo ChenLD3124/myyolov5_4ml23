@@ -137,7 +137,9 @@ def letterbox(im, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleF
         im = cv2.resize(im, new_unpad, interpolation=cv2.INTER_LINEAR)
     top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
     left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-    im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
+    im1 = cv2.copyMakeBorder(im[:,:,:3], top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
+    im2 = cv2.copyMakeBorder(im[:,:,3:], top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
+    im=np.concatenate([im1,im2],axis=-1)
     return im, ratio, (dw, dh)
 
 
@@ -188,14 +190,18 @@ def random_perspective(im,
     M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
     if (border[0] != 0) or (border[1] != 0) or (M != np.eye(3)).any():  # image changed
         if perspective:
-            im = cv2.warpPerspective(im, M, dsize=(width, height), borderValue=(114, 114, 114))
+            im1 = cv2.warpPerspective(im[:,:,:3], M, dsize=(width, height), borderValue=(114, 114, 114))
+            im2 = cv2.warpPerspective(im[:,:,3:], M, dsize=(width, height), borderValue=(114, 114, 114))
+            im=np.concatenate([im1,im2],axis=-1)
         else:  # affine
-            im = cv2.warpAffine(im, M[:2], dsize=(width, height), borderValue=(114, 114, 114))
+            im1 = cv2.warpAffine(im[:,:,:3], M[:2], dsize=(width, height), borderValue=(114, 114, 114))
+            im2 = cv2.warpAffine(im[:,:,3:], M[:2], dsize=(width, height), borderValue=(114, 114, 114))
+            im=np.concatenate([im1,im2],axis=-1)
 
     # Visualize
     # import matplotlib.pyplot as plt
     # ax = plt.subplots(1, 2, figsize=(12, 6))[1].ravel()
-    # ax[0].imshow(im[:, :, ::-1])  # base
+    # ax[0].imshow(im1[:, :, ::-1])  # base
     # ax[1].imshow(im2[:, :, ::-1])  # warped
 
     # Transform label coordinates

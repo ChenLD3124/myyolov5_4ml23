@@ -340,6 +340,12 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
             c2 = ch[f] * args[0] ** 2
         elif m is Expand:
             c2 = ch[f] // args[0] ** 2
+        elif m is EmptyLayer:
+            c2 = 6
+        elif m is SubInput:
+            c2 = 3
+        elif m in {MyFusion,AttentionFusion}:
+            c2 = ch[f[0]]
         else:
             c2 = ch[f]
 

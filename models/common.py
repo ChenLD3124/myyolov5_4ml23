@@ -323,6 +323,52 @@ class Concat(nn.Module):
     def forward(self, x):
         return torch.cat(x, self.d)
 
+import torch.nn.functional as F
+class AttentionFusion(nn.Module):
+    def __init__(self, in_features):
+        super(AttentionFusion, self).__init__()
+        self.in_features = in_features
+        # 注意力模块的卷积层
+        self.conv1 = nn.Conv2d(in_features, in_features // 8, 1)
+        self.conv2 = nn.Conv2d(in_features // 8, 1, 1)
+
+    def forward(self, x):
+        x1,x2=x[1],x[0]#1是瑕疵图,0是template
+        # 计算差异映射
+        diff_map = x1 - x2
+        # 通过卷积层计算注意力权重
+        att_diff = F.relu(self.conv1(diff_map))
+        att_diff = self.conv2(att_diff)
+        # 使用softmax获取归一化的注意力分数
+        att_weights = F.softmax(att_diff, dim=1)
+        # 应用注意力权重到差异映射
+        weighted_diff = att_weights * diff_map
+        # 融合特征
+        fused_features = x1 + weighted_diff  # 现在加上加权差异
+        return fused_features
+
+class MyFusion(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def forward(self, x):
+        return 0.5*(x[1]-x[0])+x[1]
+    
+class EmptyLayer(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def forward(self, x):
+        return x
+    
+class SubInput(nn.Module):
+    def __init__(self,b,e) -> None:
+        super().__init__()
+        self.b=b
+        self.e=e
+    
+    def forward(self, x):
+        return x[:,self.b:self.e]
 
 class DetectMultiBackend(nn.Module):
     # YOLOv5 MultiBackend class for python inference on various backends
